@@ -1,0 +1,63 @@
+---
+title: "Class_10_29"
+author: "Peter George"
+date: "October 29, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readr)
+library(stringr)
+library(tidyr)
+library(tidytext)
+library(quanteda)
+library(ggplot2)
+library(dplyr)
+install.packages("DT")
+library(DT)
+library(knitr)
+library(devtools)
+library(fs)
+library(sotu)
+```
+
+```{r}
+sou <- read_csv("data/sou.csv")
+presidents <- read_csv("data/presidents.csv")
+
+sou <- sou %>%
+  left_join(presidents)
+```
+
+```{r}
+# color palette for parties
+party_pal <- c("#1482EE","#228B22","#E9967A","#686868","#FF3300","#EEC900")
+
+# word, sentence, and syllable counts, plus reading scores
+sou <- sou %>%
+  mutate(year = year(date),
+         syllables = nsyllable(text),
+         sentences = nsentence(text),
+         words = ntoken(text, remove_punct = TRUE),
+         fk_ease = 206.835 - 1.105*(words/sentences) - 84.6*(syllables/words),
+         fk_grade = 0.39*(words/sentences) + 11.8*(syllables/words) - 15.59) %>%
+  arrange(date)
+
+# reading score chart
+ggplot(sou, aes(x=date, y=fk_grade, color=party, size=words)) +
+  geom_point(alpha=0.5) +
+  geom_smooth(se=F, color="black", method="lm", size=0.5, linetype = "dotted") +
+  scale_size_area(max_size = 10, guide = FALSE) +
+  scale_color_manual(values = party_pal, name = "", breaks = c("Democratic","Republican","Whig","Democratic-Republican","Federalist","None")) +
+  scale_y_continuous(limits = c(4,27), breaks = c(5,10,15,20,25)) +
+  theme_minimal(base_size = 24, base_family = "ProximaNova-Semibold") +
+  xlab("") +
+  ylab("Reading level") +
+  guides(col = guide_legend(ncol = 2, override.aes = list(size = 4))) +
+  theme(legend.position=c(0.3,0.22),
+        legend.text = element_text(color="#909090", size = 18),
+        panel.grid.minor = element_blank())
+```
+
